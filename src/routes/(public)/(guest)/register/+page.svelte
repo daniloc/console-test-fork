@@ -21,6 +21,8 @@
     import { checkPricingRefAndRedirect } from '$lib/helpers/pricingRedirect';
     import { Layout, Link, Typography } from '@appwrite.io/pink-svelte';
     import { getRandomTestimonial } from '$lib/data/testimonials';
+    import posthog from 'posthog-js';
+    import { env } from '$env/dynamic/public';
 
     export let data;
 
@@ -70,6 +72,20 @@
                 testimonial_id: randomTestimonial.id,
                 testimonial_name: randomTestimonial.name
             });
+
+            // PostHog: identify and track new user registration
+            if (env.PUBLIC_POSTHOG_KEY) {
+                // Get the account to get the user ID
+                const account = await sdk.forConsole.account.get();
+                posthog.identify(account.$id, {
+                    email: mail,
+                    name: name
+                });
+                posthog.capture('user_registered', {
+                    registration_method: 'email',
+                    campaign_code: data?.couponData?.code
+                });
+            }
 
             if (data?.couponData?.code) {
                 await goto(`${base}/apply-credit?code=${data?.couponData?.code}`);

@@ -26,7 +26,9 @@ const config = {
             precompress: true
         }),
         paths: {
-            base: process.env.PREVIEW ? '' : '/console'
+            base: process.env.PREVIEW ? '' : '/console',
+            // Required for PostHog session replay to work correctly with SSR
+            relative: false
         }
     },
     vitePlugin: {

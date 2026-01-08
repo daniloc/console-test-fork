@@ -1,7 +1,9 @@
 import * as Sentry from '@sentry/sveltekit';
+import posthog from 'posthog-js';
 import { isCloud, isProd } from '$lib/system';
 import { AppwriteException } from '@appwrite.io/console';
 import type { HandleClientError } from '@sveltejs/kit';
+import { env } from '$env/dynamic/public';
 
 Sentry.init({
     enabled: isCloud && isProd,
@@ -11,8 +13,25 @@ Sentry.init({
     replaysOnErrorSampleRate: 0
 });
 
+// Initialize PostHog when the app starts in the browser
+export async function init() {
+    if (env.PUBLIC_POSTHOG_KEY) {
+        posthog.init(env.PUBLIC_POSTHOG_KEY, {
+            api_host: env.PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
+            ui_host: 'https://us.posthog.com',
+            defaults: '2025-11-30',
+            capture_exceptions: true
+        });
+    }
+}
+
 export const handleError: HandleClientError = ({ error, message, status }) => {
     console.error(error);
+
+    // Capture error with PostHog
+    if (env.PUBLIC_POSTHOG_KEY) {
+        posthog.captureException(error);
+    }
 
     let type;
     if (error instanceof AppwriteException) {

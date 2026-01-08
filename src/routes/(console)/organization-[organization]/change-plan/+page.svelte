@@ -36,6 +36,8 @@
     import type { OrganizationUsage } from '$lib/sdk/billing';
     import type { Models } from '@appwrite.io/console';
     import { toLocaleDate } from '$lib/helpers/date';
+    import posthog from 'posthog-js';
+    import { env } from '$env/dynamic/public';
 
     export let data;
 
@@ -190,6 +192,17 @@
             trackEvent(Submit.OrganizationDowngrade, {
                 plan: tierToPlan(selectedPlan)?.name
             });
+
+            // PostHog: track plan downgrade
+            if (env.PUBLIC_POSTHOG_KEY) {
+                posthog.capture('plan_downgraded', {
+                    organization_id: data.organization.$id,
+                    organization_name: $organization.name,
+                    from_plan: tierToPlan(data.organization.billingPlan)?.name,
+                    to_plan: tierToPlan(selectedPlan)?.name,
+                    downgrade_reason: feedbackDowngradeReason
+                });
+            }
         } catch (e) {
             addNotification({
                 type: 'error',
@@ -285,6 +298,17 @@
                 trackEvent(Submit.OrganizationUpgrade, {
                     plan: tierToPlan(selectedPlan)?.name
                 });
+
+                // PostHog: track plan upgrade
+                if (env.PUBLIC_POSTHOG_KEY) {
+                    posthog.capture('plan_upgraded', {
+                        organization_id: org.$id,
+                        organization_name: org.name,
+                        from_plan: tierToPlan(data.organization.billingPlan)?.name,
+                        to_plan: tierToPlan(selectedPlan)?.name,
+                        members_invited: newCollaborators?.length
+                    });
+                }
             }
         } catch (e) {
             addNotification({

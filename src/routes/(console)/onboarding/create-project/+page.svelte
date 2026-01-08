@@ -14,6 +14,8 @@
     import { loadAvailableRegions } from '$routes/(console)/regions';
     import { regions as regionsStore } from '$lib/stores/organization';
     import { user } from '$lib/stores/user';
+    import posthog from 'posthog-js';
+    import { env } from '$env/dynamic/public';
 
     let isLoading = false;
     let startAnimation = false;
@@ -55,6 +57,18 @@
                 teamId,
                 customId: projectId !== projectIdForLog
             });
+
+            // PostHog: track project creation
+            if (env.PUBLIC_POSTHOG_KEY) {
+                posthog.capture('project_created', {
+                    project_id: project.$id,
+                    project_name: projectName,
+                    organization_id: teamId,
+                    region: project.region,
+                    custom_id_used: projectId !== projectIdForLog,
+                    is_onboarding: true
+                });
+            }
 
             startAnimation = true;
 

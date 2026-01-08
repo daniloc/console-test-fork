@@ -21,6 +21,8 @@
     import EstimatedTotalBox from '$lib/components/billing/estimatedTotalBox.svelte';
     import { onMount } from 'svelte';
     import type { PageProps } from './$types';
+    import posthog from 'posthog-js';
+    import { env } from '$env/dynamic/public';
 
     const { data }: PageProps = $props();
 
@@ -155,6 +157,17 @@
             });
 
             if (isOrganization(org)) {
+                // PostHog: track organization creation
+                if (env.PUBLIC_POSTHOG_KEY) {
+                    posthog.capture('organization_created', {
+                        organization_id: org.$id,
+                        organization_name: org.name,
+                        plan: tierToPlan(billingPlan)?.name,
+                        members_invited: collaborators?.length,
+                        budget_cap_enabled: billingBudget !== null
+                    });
+                }
+
                 await invalidate(Dependencies.ACCOUNT);
                 await preloadData(`${base}/organization-${org.$id}`);
                 await goto(`${base}/organization-${org.$id}`);
