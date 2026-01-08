@@ -13,6 +13,8 @@
     import { redirectTo } from '$routes/store';
     import { user } from '$lib/stores/user';
     import { Layout } from '@appwrite.io/pink-svelte';
+    import posthog from 'posthog-js';
+    import { env } from '$env/dynamic/public';
 
     let mail: string, pass: string, disabled: boolean;
 
@@ -28,6 +30,18 @@
 
             if ($user) {
                 trackEvent(Submit.AccountLogin, { mfa_used: 'none' });
+
+                // PostHog: identify user on login
+                if (env.PUBLIC_POSTHOG_KEY) {
+                    posthog.identify($user.$id, {
+                        email: mail,
+                        name: $user.name
+                    });
+                    posthog.capture('user_logged_in', {
+                        login_method: 'email'
+                    });
+                }
+
                 addNotification({
                     type: 'success',
                     message: 'Successfully logged in.'
